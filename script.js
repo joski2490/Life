@@ -334,6 +334,21 @@ Universe.prototype = {
 			});
 		}
 		
+	},
+	
+	click: function(x,y) {
+		x += this.followed.x - canvas.width/2 - canvas.offsetLeft;
+		y += this.followed.y - canvas.height/2 - canvas.offsetTop;
+		for (var i = this.find(x-max_radius); i < this.creatures.length; ++i) {
+			var c = this.creatures[i];
+			if (c.x - max_radius > x) return;
+			var dx = c.x - x;
+			var dy = c.y - y;
+			if (c.r * c.r > dx * dx + dy * dy) {
+				this.followed = c;
+				return;
+			}
+		}
 	}
 
 };
@@ -367,4 +382,10 @@ var creatures = [
 	new Creature(0,0,genome)
 ];
 
-loop(new Universe(creatures));
+var universe = new Universe(creatures);
+
+loop(universe);
+
+canvas.onclick = function(ev) {
+	universe.click(ev.clientX,ev.clientY);
+}
