@@ -6,19 +6,49 @@ var ctx    = canvas.getContext('2d');
 var max_radius = 10;
 var world_w = 800;
 var world_h = 800;
+var max_speed = 12;
+var min_radius = 4;
+var max_radius = 16;
+
+// Genome functions
+
+function truncExp(min,max,x,t) {
+	if (x < 0) return 0;
+	return min + (max - min) * (1 - Math.exp(-x/t));
+}
+
+function speedF(x) {
+	return truncExp(0,max_speed,x,1);
+}
+
+function radiusF(g) {
+	var x = 0;
+	for (var k in g) x += g[k];
+	return truncExp(min_radius,max_radius,x,10);
+}
+
+function colorF(g) {
+	var rgb = [0,0,0], i = 0;
+	for (var k in g) rgb[i++ % 3] += g[k];
+	var r = truncExp(0,255,rgb[0],3).toFixed();
+	var g = truncExp(0,255,rgb[1],3).toFixed();
+	var b = truncExp(0,255,rgb[2],3).toFixed();
+	return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
 
 // Creature class
 
-function Creature(x,y) {
+function Creature(x,y,g) {
 	this.x = x;
 	this.y = y;
-	this.dx = Math.random() * 5 - 2.5;
-	this.dy = Math.random() * 5 - 2.5;
-	this.speed = 1 + Math.random() * 5;
+	this.g = g;
+	this.dx = 0;
+	this.dy = 0;
+	this.speed = speedF(g.speed);
 	this.odx = 0;
 	this.ody = 0;
-	this.r = 4 + Math.random() * 12;
-	this.c = 'rgb(' + (Math.random() * 256).toFixed() + ',' + (Math.random() * 256).toFixed() + ',' + (Math.random() * 256).toFixed() + ')';
+	this.r = radiusF(g);
+	this.c = colorF(g);
 }
 
 Creature.prototype = {
@@ -64,12 +94,13 @@ Creature.prototype = {
 		}
 		var r = 4.2 * this.r / l;
 		
-		var c = new Creature(this.x, this.y);
+		var g = {};
+		for (var k in this.g) {
+			g[k] = this.g[k];
+			if (Math.random() < 0.1) g[k] += Math.random() - 0.5;
+		}
 		
-		c.x -= dx * r;
-		c.y -= dy * r;
-		
-		return c;
+		return new Creature(this.x - dx * r, this.y - dy * r, g);		
 	}
 
 };
@@ -193,8 +224,12 @@ function loop(universe) {
 
 // Initial setup 
 
+var genome = {
+	speed: 0
+};
+
 var creatures = [
-	new Creature(0,0)
+	new Creature(0,0,genome)
 ];
 
 loop(new Universe(creatures));
