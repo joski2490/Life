@@ -17,6 +17,7 @@ function Creature(x,y) {
 Creature.prototype = {
 
 	render: function() {		
+		ctx.beginPath();
 		ctx.fillStyle = this.c;
 		ctx.arc(this.x,this.y,this.r,0,6.2831);
 		ctx.fill();
@@ -119,7 +120,8 @@ function loop(universe) {
 // Initial setup 
 
 var creatures = [
-	new Creature(3,16)
+	new Creature(3,16),
+	new Creature(-28,-22)
 ];
 
 loop(new Universe(creatures));
