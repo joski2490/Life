@@ -123,13 +123,13 @@ Creature.prototype = {
 	
 	// Create a copy of this creature, splitting in the 
 	// direction of movement OR a random direction if fixed.
-	// A total energy amount of 2*(this.size - 1) is lost upon 
+	// A total energy amount of (this.size - 1) is lost upon 
 	// reproduction.
 	reproduce : function() {
 	
 		if (this.energy < 2 * this.size) return null;
 		
-		this.energy = 1;
+		this.energy -= this.size;
 	
 		var dx = this.odx;
 		var dy = this.ody;
@@ -209,7 +209,8 @@ Universe.prototype = {
 			if (c.alive) clean.push(c);
 		}
 		this.creatures = clean;
-		if (!this.followed.alive) this.followed = this.creatures[0];
+		if (!this.followed.alive) 
+			this.followed = this.creatures[Math.floor(this.creatures.length/2)];
 	},
 	
 	// Returns i such that for any j < i, creature j is to the left
