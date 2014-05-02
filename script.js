@@ -27,6 +27,16 @@ function radiusF(g) {
 	return truncExp(min_radius,max_radius,x,10);
 }
 
+function metabolismF(g) {
+	var x = 0;
+	for (var k in g) x += g[k] * g[k];
+	return truncExp(0,0.1,x,100);
+}
+
+function photosynthF(x) {
+	return truncExp(0,0.1,x,5);
+}
+
 function colorF(g) {
 	var rgb = [0,0,0], i = 0;
 	for (var k in g) rgb[i++ % 3] += g[k];
@@ -45,10 +55,13 @@ function Creature(x,y,g) {
 	this.dx = 0;
 	this.dy = 0;
 	this.speed = speedF(g.speed);
+	this.energy = 1;
+	this.metabolism = metabolismF(g) - photosynthF(g.photosynth);
 	this.odx = 0;
 	this.ody = 0;
 	this.r = radiusF(g);
 	this.c = colorF(g);
+	this.alive = true;
 }
 
 Creature.prototype = {
@@ -60,8 +73,12 @@ Creature.prototype = {
 		ctx.fill();
 	},
 	
+	// Performs movement actions, along with individual processing
+	// (like metabolism)
 	move : function() {
+	
 		var l = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+		
 		if (l > 0) {
 			this.odx = this.dx / l * this.speed;
 			this.ody = this.dy / l * this.speed;
@@ -77,6 +94,8 @@ Creature.prototype = {
 		if (this.y > world_h) this.y = world_h;
 		if (this.y < -world_h) this.y = -world_h;
 		
+		if ((this.energy -= this.metabolism) < 0) 
+			this.alive = false;
 	},
 	
 	// Create a copy of this creature, splitting in the 
@@ -151,10 +170,17 @@ Universe.prototype = {
 	// speed, reset the direction to zero and remember it. If no
 	// direction, keep moving at same speed and direction as 
 	// previously (to get unstuck).
-	move: function() {
+	//
+	// Also removes dead creatures
+	move: function() {	
+		var clean = [];	
 		for (var i = 0; i < this.creatures.length; ++i) {
-			var c = this.creatures[i].move();
+			var c = this.creatures[i];
+			c.move();
+			if (c.alive) clean.push(c);
 		}
+		this.creatures = clean;
+		if (!this.followed.alive) this.followed = this.creatures[0];
 	},
 	
 	// Returns i such that for any j < i, creature j is to the left
@@ -225,7 +251,8 @@ function loop(universe) {
 // Initial setup 
 
 var genome = {
-	speed: 0
+	speed: 0,
+	photosynth: 1
 };
 
 var creatures = [
