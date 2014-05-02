@@ -7,10 +7,10 @@ var max_radius = 10;
 var world_w = 800;
 var world_h = 800;
 var max_speed = 1.2;
-var min_radius = 8;
-var max_radius = 22;
+var min_radius = 3;
+var max_radius = 50;
 var max_sight = 500;
-var metabolism = 1 / 200;
+var metabolism = 1 / 100;
 
 // Genome functions
 
@@ -19,12 +19,18 @@ function truncExp(min,max,x,t) {
 	return min + (max - min) * (1 - Math.exp(-x/t));
 }
 
+function truncExpDual(min,max,x,t) {
+	var mid = (max + min) / 2; 
+	if (x < 0) return mid + (min - mid) * (1 - Math.exp(x/t));
+	return mid + (max - mid) * (1 - Math.exp(-x/t));
+}
+
 function speedF(x) {
 	return truncExp(0,max_speed,x,1);
 }
 
 function radiusF(x) {
-	return truncExp(min_radius,max_radius,x,10);
+	return truncExpDual(min_radius,max_radius,x,2);
 }
 
 function digestionF(x) {
@@ -76,8 +82,10 @@ function Creature(x,y,g) {
 	this.sight = sightF(g.sight);
 	this.power = g.power + (this.sight * this.speed) / 100;
 	
-	this.r = radiusF(this.size);
+	this.r = radiusF(this.size - g.mini - 4);
 	this.c = colorF(g);
+	
+	this.penetrate = false;
 	
 	this.alive = true;
 }
@@ -101,21 +109,27 @@ Creature.prototype = {
 	move : function() {
 	
 		var l = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+		var speed = this.penetrate ? max_speed : this.speed;
 		
 		if (l > 0) {
-			this.odx = this.dx / l * this.speed;
-			this.ody = this.dy / l * this.speed;
+			this.odx = this.dx / l * speed;
+			this.ody = this.dy / l * speed;
 			this.dx = 0;
 			this.dy = 0;				
 		}
-		this.x += this.odx;
-		this.y += this.ody;	
-
+		
+		if (speed > 0) {
+			this.x += this.odx;
+			this.y += this.ody;	
+		}
+		
 		if (this.x > world_w) this.x = world_w;
 		if (this.x < -world_w) this.x = -world_w;
 		
 		if (this.y > world_h) this.y = world_h;
 		if (this.y < -world_h) this.y = -world_h;
+		
+		if (this.penetrate) this.energy -= 0.05;
 		
 		if ((this.energy -= this.metabolism) < 0) 
 			this.alive = false;
@@ -140,7 +154,7 @@ Creature.prototype = {
 			dy = Math.sin(a);
 			l = 1;
 		}
-		var r = 4.2 * this.r / l;
+		var r = min_radius / l;
 		
 		var g = {};
 		for (var k in this.g) {
@@ -272,7 +286,6 @@ Universe.prototype = {
 			
 			var c = this.creatures[i];
 			if (!c.alive) continue;
-			if (c.sight == 0) continue;
 			
 			this.forEachInCircle(c.x,c.y,c.r + c.sight,i,function(c2){
 				
@@ -303,14 +316,17 @@ Universe.prototype = {
 			
 			var c = this.creatures[i];
 			if (!c.alive) continue;
+			c.penetrate = false;
 			
 			this.forEachInCircle(c.x,c.y,c.r,i,function(c2){
 				
 				// First killer takes all
 				if (!c2.alive) return;
 				
-				// Will happen on the way around
-				if (c.power < c2.power) return;
+				c.penetrate = true;
+				
+				// Only kill if power differential is enough
+				if (c.power < c2.power + 0.01) return;
 				
 				c2.alive = false;
 				c.energy += c2.energy * c.digestion;
@@ -343,6 +359,7 @@ var genome = {
 	photosynth: 1,
 	digestion: 0,
 	power: 0,
+	mini: 0,
 	sight: 0
 };
 
