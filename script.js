@@ -6,15 +6,16 @@ var ctx    = canvas.getContext('2d');
 var max_radius = 10;
 var world_w = 800;
 var world_h = 800;
-var max_speed = 12;
-var min_radius = 4;
-var max_radius = 16;
+var max_speed = 1.2;
+var min_radius = 8;
+var max_radius = 22;
 var max_sight = 500;
+var metabolism = 1 / 200;
 
 // Genome functions
 
 function truncExp(min,max,x,t) {
-	if (x < 0) return 0;
+	if (x < 0) return min;
 	return min + (max - min) * (1 - Math.exp(-x/t));
 }
 
@@ -22,24 +23,22 @@ function speedF(x) {
 	return truncExp(0,max_speed,x,1);
 }
 
-function radiusF(g) {
-	var x = 0;
-	for (var k in g) x += g[k];
+function radiusF(x) {
 	return truncExp(min_radius,max_radius,x,10);
 }
 
 function digestionF(x) {
-	return truncExp(0.1,0.9,x,1);
+	return truncExp(0.01,0.9,x,1);
 }
 
-function metabolismF(g) {
-	var x = 0;
-	for (var k in g) x += g[k] * g[k];
-	return truncExp(0,0.1,x,100);
+function sizeF(g) {
+	var x = 1;
+	for (var k in g) x *= 1 + g[k] * g[k];
+	return x;
 }
 
 function photosynthF(x) {
-	return truncExp(0,0.1,x,5);
+	return x*x / 50;
 }
 
 function sightF(x) {
@@ -70,13 +69,14 @@ function Creature(x,y,g) {
 	this.speed = speedF(g.speed);
 	
 	this.energy = 1;
-	this.metabolism = metabolismF(g) - photosynthF(g.photosynth);
+	this.size = sizeF(g);
+	this.metabolism = this.size * metabolism - photosynthF(g.photosynth);
 	this.digestion = digestionF(g.digestion);
 	
-	this.power = g.power;
 	this.sight = sightF(g.sight);
+	this.power = g.power + (this.sight * this.speed) / 100;
 	
-	this.r = radiusF(g);
+	this.r = radiusF(this.size);
 	this.c = colorF(g);
 	
 	this.alive = true;
@@ -89,6 +89,11 @@ Creature.prototype = {
 		ctx.fillStyle = this.c;
 		ctx.arc(this.x,this.y,this.r,0,6.2831);
 		ctx.fill();
+		ctx.beginPath();
+		ctx.fillStyle = 'black';		
+		ctx.arc(this.x,this.y,this.r-2,0,6.2831 * (1 - (this.energy / 2 / this.size)));
+		ctx.lineTo(this.x,this.y);
+		ctx.fill();	
 	},
 	
 	// Performs movement actions, along with individual processing
@@ -117,12 +122,14 @@ Creature.prototype = {
 	},
 	
 	// Create a copy of this creature, splitting in the 
-	// direction of movement OR a random direction if fixed
+	// direction of movement OR a random direction if fixed.
+	// A total energy amount of 2*(this.size - 1) is lost upon 
+	// reproduction.
 	reproduce : function() {
 	
-		if (this.energy < 2) return null;
+		if (this.energy < 2 * this.size) return null;
 		
-		this.energy--;
+		this.energy = 1;
 	
 		var dx = this.odx;
 		var dy = this.ody;
@@ -138,7 +145,7 @@ Creature.prototype = {
 		var g = {};
 		for (var k in this.g) {
 			g[k] = this.g[k];
-			if (Math.random() < 0.1) g[k] += Math.random() - 0.5;
+			if (Math.random() < 0.01) g[k] += Math.random() - 0.5;
 		}
 		
 		return new Creature(this.x - dx * r, this.y - dy * r, g);		
@@ -271,7 +278,7 @@ Universe.prototype = {
 				// Ignore the dead
 				if (!c2.alive) return;
 				
-				var diff = c.power - c2.power - 0.1;
+				var diff = c.power - c2.power - 0.01;
 				var dx = c2.x - c.x;
 				var dy = c2.y - c.y;
 				
