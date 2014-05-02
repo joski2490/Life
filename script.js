@@ -10,7 +10,7 @@ var max_speed = 1.2;
 var min_radius = 3;
 var max_radius = 50;
 var max_sight = 500;
-var metabolism = 1 / 100;
+var metabolism = 1 / 150;
 
 // Genome functions
 
@@ -44,7 +44,7 @@ function sizeF(g) {
 }
 
 function photosynthF(x) {
-	return x*x / 50;
+	return x * x / 50;
 }
 
 function sightF(x) {
