@@ -27,6 +27,10 @@ function radiusF(g) {
 	return truncExp(min_radius,max_radius,x,10);
 }
 
+function digestionF(x) {
+	return truncExp(0.1,0.9,x,1);
+}
+
 function metabolismF(g) {
 	var x = 0;
 	for (var k in g) x += g[k] * g[k];
@@ -49,18 +53,26 @@ function colorF(g) {
 // Creature class
 
 function Creature(x,y,g) {
+
 	this.x = x;
 	this.y = y;
 	this.g = g;
 	this.dx = 0;
 	this.dy = 0;
-	this.speed = speedF(g.speed);
-	this.energy = 1;
-	this.metabolism = metabolismF(g) - photosynthF(g.photosynth);
 	this.odx = 0;
 	this.ody = 0;
+	
+	this.speed = speedF(g.speed);
+	
+	this.energy = 1;
+	this.metabolism = metabolismF(g) - photosynthF(g.photosynth);
+	this.digestion = digestionF(g.digestion);
+	
+	this.power = g.power;
+	
 	this.r = radiusF(g);
 	this.c = colorF(g);
+	
 	this.alive = true;
 }
 
@@ -101,6 +113,10 @@ Creature.prototype = {
 	// Create a copy of this creature, splitting in the 
 	// direction of movement OR a random direction if fixed
 	reproduce : function() {
+	
+		if (this.energy < 2) return null;
+		
+		this.energy--;
 	
 		var dx = this.odx;
 		var dy = this.ody;
@@ -204,8 +220,8 @@ Universe.prototype = {
 	
 		var spawned = [];
 		for (var i = 0; i < this.creatures.length; ++i) {		
-			if (Math.random() > 0.05) continue;
-			spawned.push(this.creatures[i].reproduce());			
+			var c = this.creatures[i].reproduce();
+			if (c !== null) spawned.push(c);			
 		}
 		
 		this.creatures.push.apply(this.creatures, spawned);
@@ -232,6 +248,31 @@ Universe.prototype = {
 			if (d2 <= r2) f(c);
 			
 		}
+	},
+	
+	// Creatures that touch each other fight, the winner eats the 
+	// loser.
+	fight: function() {
+	
+		for (var i = 0; i < this.creatures.length; ++i) {
+			
+			var c = this.creatures[i];
+			if (!c.alive) continue;
+			
+			this.forEachInCircle(c.x,c.y,c.r,i,function(c2){
+				
+				// First killer takes all
+				if (!c2.alive) return;
+				
+				// Will happen on the way around
+				if (c.power < c2.power) return;
+				
+				c2.alive = false;
+				c.energy += c2.energy * c.digestion;
+				
+			});
+		}
+		
 	}
 
 };
@@ -242,6 +283,7 @@ function loop(universe) {
 
 	universe.sort();
 	universe.render();
+	universe.fight();
 	universe.move();
 	universe.reproduce();
 	
@@ -252,7 +294,9 @@ function loop(universe) {
 
 var genome = {
 	speed: 0,
-	photosynth: 1
+	photosynth: 1,
+	digestion: 0,
+	power: 0
 };
 
 var creatures = [
