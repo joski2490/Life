@@ -4,14 +4,21 @@ var ctx    = canvas.getContext('2d');
 // Constants
 
 var max_radius = 10;
+var world_w = 800;
+var world_h = 800;
 
 // Creature class
 
 function Creature(x,y) {
 	this.x = x;
 	this.y = y;
-	this.r = 10;
-	this.c = 'red';
+	this.dx = Math.random() * 5 - 2.5;
+	this.dy = Math.random() * 5 - 2.5;
+	this.speed = 1 + Math.random() * 5;
+	this.odx = 0;
+	this.ody = 0;
+	this.r = 4 + Math.random() * 12;
+	this.c = 'rgb(' + (Math.random() * 256).toFixed() + ',' + (Math.random() * 256).toFixed() + ',' + (Math.random() * 256).toFixed() + ')';
 }
 
 Creature.prototype = {
@@ -21,6 +28,25 @@ Creature.prototype = {
 		ctx.fillStyle = this.c;
 		ctx.arc(this.x,this.y,this.r,0,6.2831);
 		ctx.fill();
+	},
+	
+	move : function() {
+		var l = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+		if (l > 0) {
+			this.odx = this.dx / l * this.speed;
+			this.ody = this.dy / l * this.speed;
+			this.dx = 0;
+			this.dy = 0;				
+		}
+		this.x += this.odx;
+		this.y += this.ody;	
+
+		if (this.x > world_w) this.x = world_w;
+		if (this.x < -world_w) this.x = -world_w;
+		
+		if (this.y > world_h) this.y = world_h;
+		if (this.y < -world_h) this.y = -world_h;
+		
 	}
 
 };
@@ -42,12 +68,12 @@ Universe.prototype = {
 		var w = canvas.width / 2;
 		var h = canvas.height / 2;
 
-		// Center on followed creature
-		ctx.translate(w-x,h-y);
-		
 		// Erase everything
-		ctx.fillStyle = 'white';
-		ctx.fillRect(-w,-h,2*w,2*h);
+		ctx.clearRect(0,0,2*w,2*h);
+		
+		// Center on followed creature
+		ctx.save();
+		ctx.translate(w-x,h-y);
 		
 		var mx = x + w + max_radius;
 		for (var i = this.find(x - w - max_radius); i < this.creatures.length; ++i) {		
@@ -59,12 +85,22 @@ Universe.prototype = {
 		}
 		
 		// Restore translation status
-		ctx.translate(x-w,y-w);
+		ctx.restore();
 	},
 
 	// Sort the array of creatures by their 'x' position.
 	sort: function() {
 		this.creatures.sort(function(a,b) { return a.x - b.x });
+	},
+	
+	// Move every creature in the (dx,dy) direction at its current  
+	// speed, reset the direction to zero and remember it. If no
+	// direction, keep moving at same speed and direction as 
+	// previously (to get unstuck).
+	move: function() {
+		for (var i = 0; i < this.creatures.length; ++i) {
+			var c = this.creatures[i].move();
+		}
 	},
 	
 	// Returns i such that for any j < i, creature j is to the left
@@ -113,6 +149,7 @@ function loop(universe) {
 
 	universe.sort();
 	universe.render();
+	universe.move();
 	
 	setTimeout(function() { loop(universe); }, 50);
 }
@@ -120,8 +157,13 @@ function loop(universe) {
 // Initial setup 
 
 var creatures = [
-	new Creature(3,16),
-	new Creature(-28,-22)
+	new Creature(0,0)
 ];
+
+for (var i = 0; i < 100; ++i) {
+	creatures.push(new Creature(
+		world_w * (Math.random() * 2 - 1),
+		world_h * (Math.random() * 2 - 1)));
+}
 
 loop(new Universe(creatures));
