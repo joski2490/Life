@@ -1,5 +1,6 @@
 var canvas = document.getElementById('c');
 var ctx    = canvas.getContext('2d');
+var info   = document.getElementById('info');
 
 // Constants
 
@@ -10,7 +11,7 @@ var max_speed = 1.2;
 var min_radius = 3;
 var max_radius = 50;
 var max_sight = 500;
-var metabolism = 1 / 150;
+var metabolism = 1 / 200;
 
 // Genome functions
 
@@ -34,21 +35,21 @@ function radiusF(x) {
 }
 
 function digestionF(x) {
-	return truncExp(0.01,0.9,x,1);
+	return truncExp(0.05,1,x,1);
 }
 
 function sizeF(g) {
 	var x = 1;
 	for (var k in g) x *= 1 + g[k] * g[k];
-	return x;
+	return x * x / 1.8;
 }
 
 function photosynthF(x) {
-	return x * x / 50;
+	return x * x / 25;
 }
 
 function sightF(x) {
-	return truncExp(0,max_sight,x,5);
+	return truncExp(0,max_sight,x*x,5);
 }
 
 function colorF(g) {
@@ -76,11 +77,13 @@ function Creature(x,y,g) {
 	
 	this.energy = 1;
 	this.size = sizeF(g);
+	this.cost  = this.size * this.size;
 	this.metabolism = this.size * metabolism - photosynthF(g.photosynth);
 	this.digestion = digestionF(g.digestion);
 	
 	this.sight = sightF(g.sight);
 	this.power = g.power + (this.sight * this.speed) / 100;
+	this.armor = g.armor;
 	
 	this.r = radiusF(this.size - g.mini - 4);
 	this.c = colorF(g);
@@ -99,9 +102,25 @@ Creature.prototype = {
 		ctx.fill();
 		ctx.beginPath();
 		ctx.fillStyle = 'black';		
-		ctx.arc(this.x,this.y,this.r-2,0,6.2831 * (1 - (this.energy / 2 / this.size)));
+		ctx.arc(this.x,this.y,this.r-2,0,6.2831 * (1 - (this.energy / 2 / this.cost)));
 		ctx.lineTo(this.x,this.y);
 		ctx.fill();	
+	},
+	
+	renderInfo: function() {
+	
+		var html = [];
+		function add(k,o) { html.push('<dt>',k,'</dt><dd>',o[k].toFixed(2),'</dd>'); }
+		
+		for (var k in this.g) add(k,this.g);
+		add("energy",this);
+		add("speed",this);
+		add("size",this);
+		add("metabolism",this);
+		add("sight",this);
+		add("digestion",this);
+		
+		info.innerHTML = html.join('');
 	},
 	
 	// Performs movement actions, along with individual processing
@@ -137,13 +156,13 @@ Creature.prototype = {
 	
 	// Create a copy of this creature, splitting in the 
 	// direction of movement OR a random direction if fixed.
-	// A total energy amount of (this.size - 1) is lost upon 
+	// A total energy amount of (this.cost - 1) is lost upon 
 	// reproduction.
 	reproduce : function() {
 	
-		if (this.energy < 2 * this.size) return null;
+		if (this.energy < 2 * this.cost) return null;
 		
-		this.energy -= this.size;
+		this.energy -= this.cost;
 	
 		var dx = this.odx;
 		var dy = this.ody;
@@ -178,6 +197,8 @@ Universe.prototype = {
 
 	// Render all creatures, centered around the followed creature
 	render: function() {
+	
+		this.followed.renderInfo();
 		
 		var x = this.followed.x;
 		var y = this.followed.y;
@@ -314,6 +335,8 @@ Universe.prototype = {
 	
 		for (var i = 0; i < this.creatures.length; ++i) {
 			
+			var feeding = false;
+			
 			var c = this.creatures[i];
 			if (!c.alive) continue;
 			c.penetrate = false;
@@ -324,14 +347,19 @@ Universe.prototype = {
 				if (!c2.alive) return;
 				
 				c.penetrate = true;
-				
-				// Only kill if power differential is enough
-				if (c.power < c2.power + 0.01) return;
-				
-				c2.alive = false;
-				c.energy += c2.energy * c.digestion;
+
+				var steal = c.power - c2.armor;
+				if (steal > 0) 
+				{
+					feeding = true;
+					if (steal > c2.energy) steal = c2.energy;
+					c2.energy -= steal;
+					c.energy  += steal * c.digestion;
+				}
 				
 			});
+			
+			c.penetrate = c.penetrate && !feeding;
 		}
 		
 	},
@@ -371,10 +399,11 @@ function loop(universe) {
 
 var genome = {
 	speed: 0,
-	photosynth: 1,
+	photosynth: 0.6,
 	digestion: 0,
 	power: 0,
 	mini: 0,
+	armor: 0,
 	sight: 0
 };
 
