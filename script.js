@@ -47,6 +47,29 @@ Creature.prototype = {
 		if (this.y > world_h) this.y = world_h;
 		if (this.y < -world_h) this.y = -world_h;
 		
+	},
+	
+	// Create a copy of this creature, splitting in the 
+	// direction of movement OR a random direction if fixed
+	reproduce : function() {
+	
+		var dx = this.odx;
+		var dy = this.ody;
+		var  l = Math.sqrt(dx * dx + dy * dy);
+		if (l == 0) {
+			var a = Math.random() * 6.283;
+			dx = Math.cos(a);
+			dy = Math.sin(a);
+			l = 1;
+		}
+		var r = 4.2 * this.r / l;
+		
+		var c = new Creature(this.x, this.y);
+		
+		c.x -= dx * r;
+		c.y -= dy * r;
+		
+		return c;
 	}
 
 };
@@ -118,6 +141,19 @@ Universe.prototype = {
 		return a;
 	},
 	
+	// Give each creature a chance to reproduce. Add the spawned 
+	// creature to the array.
+	reproduce: function(x) {
+	
+		var spawned = [];
+		for (var i = 0; i < this.creatures.length; ++i) {		
+			if (Math.random() > 0.05) continue;
+			spawned.push(this.creatures[i].reproduce());			
+		}
+		
+		this.creatures.push.apply(this.creatures, spawned);
+	},
+	
 	// Applies function 'f' to each creature that *touches* 
 	// circle (x,y,r), except creature j 
 	forEachInCircle: function(x,y,r,j,f) {		
@@ -150,6 +186,7 @@ function loop(universe) {
 	universe.sort();
 	universe.render();
 	universe.move();
+	universe.reproduce();
 	
 	setTimeout(function() { loop(universe); }, 50);
 }
@@ -159,11 +196,5 @@ function loop(universe) {
 var creatures = [
 	new Creature(0,0)
 ];
-
-for (var i = 0; i < 100; ++i) {
-	creatures.push(new Creature(
-		world_w * (Math.random() * 2 - 1),
-		world_h * (Math.random() * 2 - 1)));
-}
 
 loop(new Universe(creatures));
