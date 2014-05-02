@@ -9,6 +9,7 @@ var world_h = 800;
 var max_speed = 12;
 var min_radius = 4;
 var max_radius = 16;
+var max_sight = 500;
 
 // Genome functions
 
@@ -41,6 +42,10 @@ function photosynthF(x) {
 	return truncExp(0,0.1,x,5);
 }
 
+function sightF(x) {
+	return truncExp(0,max_sight,x,5);
+}
+
 function colorF(g) {
 	var rgb = [0,0,0], i = 0;
 	for (var k in g) rgb[i++ % 3] += g[k];
@@ -69,6 +74,7 @@ function Creature(x,y,g) {
 	this.digestion = digestionF(g.digestion);
 	
 	this.power = g.power;
+	this.sight = sightF(g.sight);
 	
 	this.r = radiusF(g);
 	this.c = colorF(g);
@@ -250,6 +256,37 @@ Universe.prototype = {
 		}
 	},
 	
+	// Creatures look around, flee what they cannot fight, move
+	// towards what they can fight
+	view: function() {
+	
+		for (var i = 0; i < this.creatures.length; ++i) {
+			
+			var c = this.creatures[i];
+			if (!c.alive) continue;
+			if (c.sight == 0) continue;
+			
+			this.forEachInCircle(c.x,c.y,c.r + c.sight,i,function(c2){
+				
+				// Ignore the dead
+				if (!c2.alive) return;
+				
+				var diff = c.power - c2.power - 0.1;
+				var dx = c2.x - c.x;
+				var dy = c2.y - c.y;
+				
+				var lsq = dx * dx + dy * dy; 
+				if (lsq == 0) return;
+				
+				// Move towards closest, weakest neighbor.
+				c.dx += dx * diff / lsq;
+				c.dy += dy * diff / lsq;
+				
+			});
+		}
+		
+	},
+	
 	// Creatures that touch each other fight, the winner eats the 
 	// loser.
 	fight: function() {
@@ -284,6 +321,7 @@ function loop(universe) {
 	universe.sort();
 	universe.render();
 	universe.fight();
+	universe.view();
 	universe.move();
 	universe.reproduce();
 	
@@ -296,7 +334,8 @@ var genome = {
 	speed: 0,
 	photosynth: 1,
 	digestion: 0,
-	power: 0
+	power: 0,
+	sight: 0
 };
 
 var creatures = [
