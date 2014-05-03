@@ -12,6 +12,7 @@ var min_radius = 3;
 var max_radius = 50;
 var max_sight = 500;
 var metabolism = 1 / 200;
+var intake = 0.015;
 
 // Genome functions
 
@@ -35,13 +36,15 @@ function radiusF(x) {
 }
 
 function digestionF(x) {
-	return truncExp(0.5,1,x,1);
+	return truncExp(0.1,1,x,1);
 }
 
 function sizeF(g) {
-	var x = 1;
-	for (var k in g) x *= 1 + g[k] * g[k];
-	return x * x / 1.8;
+	var x = 0.8;
+	for (var k in g) 
+		if (g[k] > 0) 
+			x += 0.5 + g[k] * g[k];
+	return x * x;
 }
 
 function photosynthF(x) {
@@ -53,15 +56,18 @@ function sightF(x) {
 }
 
 function fightF(x) {
+	if (x < 0) return 0;
 	return truncExp(0,2,x*x,5);
 }
 
 function colorF(g) {
-	var rgb = [0,0,0], i = 0;
-	for (var k in g) rgb[i++ % 3] += g[k];
-	var r = truncExp(0,255,rgb[0],3).toFixed();
-	var g = truncExp(0,255,rgb[1],3).toFixed();
-	var b = truncExp(0,255,rgb[2],3).toFixed();
+	var rgb = [0.01,0.01,0.01], i = 0;
+	for (var k in g) rgb[i++ % 3] += Math.max(0,g[k]);
+	var max = Math.max(rgb[0],Math.max(rgb[1],rgb[2]));
+	var sum = truncExp(128,255,rgb[0] + rgb[1] + rgb[2],2);
+	var r = (sum * rgb[0]/max).toFixed();
+	var g = (sum * rgb[1]/max).toFixed();
+	var b = (sum * rgb[2]/max).toFixed();
 	return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
@@ -81,7 +87,7 @@ function Creature(x,y,g) {
 	
 	this.size = sizeF(g);
 	this.cost  = this.size * this.size;
-	this.metabolism = this.size * metabolism - photosynthF(g.photosynth);
+	this.metabolism = this.size * metabolism - photosynthF(g.photosynth) - intake;
 	this.digestion = digestionF(g.digestion);
 	
 	this.sight = sightF(g.sight);
@@ -168,17 +174,11 @@ Creature.prototype = {
 		if (this.energy < 2 * this.cost) return null;
 		
 		this.energy -= this.cost;
-	
-		var dx = this.odx;
-		var dy = this.ody;
-		var  l = Math.sqrt(dx * dx + dy * dy);
-		if (l == 0) {
-			var a = Math.random() * 6.283;
-			dx = Math.cos(a);
-			dy = Math.sin(a);
-			l = 1;
-		}
-		var r = min_radius / l;
+
+		var a = Math.random() * 6.283;
+		dx = Math.cos(a);
+		dy = Math.sin(a);
+		var r = min_radius;
 		
 		var g = {};
 		for (var k in this.g) {
@@ -408,7 +408,7 @@ function loop(universe) {
 
 var genome = {
 	speed: 0,
-	photosynth: 0.6,
+	photosynth: 0,
 	digestion: 0,
 	power: 0,
 	mini: 0,
