@@ -35,7 +35,7 @@ function radiusF(x) {
 }
 
 function digestionF(x) {
-	return truncExp(0.05,1,x,1);
+	return truncExp(0.5,1,x,1);
 }
 
 function sizeF(g) {
@@ -49,7 +49,11 @@ function photosynthF(x) {
 }
 
 function sightF(x) {
-	return truncExp(0,max_sight,x*x,5);
+	return truncExp(0,max_sight,x,5);
+}
+
+function fightF(x) {
+	return truncExp(0,2,x*x,5);
 }
 
 function colorF(g) {
@@ -75,18 +79,19 @@ function Creature(x,y,g) {
 	
 	this.speed = speedF(g.speed);
 	
-	this.energy = 1;
 	this.size = sizeF(g);
 	this.cost  = this.size * this.size;
 	this.metabolism = this.size * metabolism - photosynthF(g.photosynth);
 	this.digestion = digestionF(g.digestion);
 	
 	this.sight = sightF(g.sight);
-	this.power = g.power + (this.sight * this.speed) / 100;
-	this.armor = g.armor;
+	this.power = fightF(g.power);
+	this.armor = fightF(3*g.armor);
 	
 	this.r = radiusF(this.size - g.mini - 4);
 	this.c = colorF(g);
+	
+	this.energy = this.cost;
 	
 	this.penetrate = false;
 	
@@ -119,6 +124,8 @@ Creature.prototype = {
 		add("metabolism",this);
 		add("sight",this);
 		add("digestion",this);
+		add("power",this);
+		add("armor",this);
 		
 		info.innerHTML = html.join('');
 	},
@@ -148,16 +155,14 @@ Creature.prototype = {
 		if (this.y > world_h) this.y = world_h;
 		if (this.y < -world_h) this.y = -world_h;
 		
-		if (this.penetrate) this.energy -= 0.05;
-		
 		if ((this.energy -= this.metabolism) < 0) 
 			this.alive = false;
+			
+		this.penetrate = false;
 	},
 	
 	// Create a copy of this creature, splitting in the 
 	// direction of movement OR a random direction if fixed.
-	// A total energy amount of (this.cost - 1) is lost upon 
-	// reproduction.
 	reproduce : function() {
 	
 		if (this.energy < 2 * this.cost) return null;
@@ -335,11 +340,8 @@ Universe.prototype = {
 	
 		for (var i = 0; i < this.creatures.length; ++i) {
 			
-			var feeding = false;
-			
 			var c = this.creatures[i];
 			if (!c.alive) continue;
-			c.penetrate = false;
 			
 			this.forEachInCircle(c.x,c.y,c.r,i,function(c2){
 				
@@ -349,17 +351,24 @@ Universe.prototype = {
 				c.penetrate = true;
 
 				var steal = c.power - c2.armor;
-				if (steal > 0) 
+				if (c.power > c2.power && steal > 0) 
 				{
 					feeding = true;
-					if (steal > c2.energy) steal = c2.energy;
+					
+					if (steal > c2.energy) {
+						steal = c2.energy;
+						c2.alive = false;
+					}
+					
 					c2.energy -= steal;
 					c.energy  += steal * c.digestion;
 				}
+				else
+				{
+					c.energy -= 0.05;
+				}
 				
 			});
-			
-			c.penetrate = c.penetrate && !feeding;
 		}
 		
 	},
