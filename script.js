@@ -417,7 +417,7 @@ var genome = {
 };
 
 var creatures = [
-	new Creature(0,0,genome);
+	new Creature(0,0,genome),
 	new Creature(50,0,genome)
 ];
 
