@@ -407,17 +407,18 @@ function loop(universe) {
 // Initial setup 
 
 var genome = {
-	speed: 1,
-	photosynth: 1,
-	digestion: 1,
-	power: 1,
-	mini: 1,
-	armor: 1,
-	sight: 1
+	speed: 0,
+	photosynth: 0,
+	digestion: 0,
+	power: 0,
+	mini: 0,
+	armor: 0,
+	sight: 0
 };
 
 var creatures = [
-	new Creature(0,0,genome)
+	new Creature(0,0,genome);
+	new Creature(50,0,genome)
 ];
 
 var universe = new Universe(creatures);
