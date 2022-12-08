@@ -418,7 +418,7 @@ var genome = {
 
 var creatures = [
 	new Creature(0,0,genome),
-	new Creatur(200,200,genome)
+	new Creature(200,200,genome)
 ];
 
 var universe = new Universe(creatures);
