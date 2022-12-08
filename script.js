@@ -4,7 +4,7 @@ var info   = document.getElementById('info');
 
 // Constants
 
-var max_radius = 25;
+var max_radius = 10;
 var world_w = 800;
 var world_h = 800;
 var max_speed = 1.2;//1.2
@@ -418,7 +418,7 @@ var genome = {
 
 var creatures = [
 	new Creature(0,0,genome),
-	new Creature(200,200,genome)
+	new Creature(50,5,genome)
 ];
 
 var universe = new Universe(creatures);
