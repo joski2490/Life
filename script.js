@@ -4,14 +4,14 @@ var info   = document.getElementById('info');
 
 // Constants
 
-var max_radius = 10;
+var max_radius = 25;
 var world_w = 800;
 var world_h = 800;
 var max_speed = 1.2;//1.2
 var min_radius = 3;//3
 var max_radius = 50;
 var max_sight = 500;//500
-var metabolism = 1 / 500;// 1/200
+var metabolism = 1 / 200;// 1/200
 var intake = 0.15;// 0.015
 
 // Genome functions
@@ -418,7 +418,7 @@ var genome = {
 
 var creatures = [
 	new Creature(0,0,genome),
-	new Creature(50,0,genome)
+	new Creatur(200,200,genome)
 ];
 
 var universe = new Universe(creatures);
