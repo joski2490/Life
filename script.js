@@ -7,12 +7,12 @@ var info   = document.getElementById('info');
 var max_radius = 10;
 var world_w = 800;
 var world_h = 800;
-var max_speed = 1.2;
-var min_radius = 3;
+var max_speed = 3;//1.2
+var min_radius = 5;//3
 var max_radius = 50;
-var max_sight = 500;
-var metabolism = 1 / 200;
-var intake = 0.015;
+var max_sight = 2000;//500
+var metabolism = 1 / 100;// 1/200
+var intake = 0.15;// 0.015
 
 // Genome functions
 
@@ -407,13 +407,13 @@ function loop(universe) {
 // Initial setup 
 
 var genome = {
-	speed: 0,
-	photosynth: 0,
-	digestion: 0,
-	power: 0,
-	mini: 0,
-	armor: 0,
-	sight: 0
+	speed: 1,
+	photosynth: 1,
+	digestion: 1,
+	power: 1,
+	mini: 1,
+	armor: 1,
+	sight: 1
 };
 
 var creatures = [
