@@ -11,7 +11,7 @@ var max_speed = 3.2;//1.2
 var min_radius = 1;//3
 var max_radius = 3;//50
 var max_sight = 500;//500
-var metabolism = 1 / 2500;// 1/200
+var metabolism = 1 / 200;// 1/200
 var intake = 0.15;// 0.015
 
 // Genome functions
