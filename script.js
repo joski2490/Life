@@ -4,10 +4,10 @@ var info   = document.getElementById('info');
 
 // Constants
 
-var max_radius = 5;//10
+var max_radius = 10;//10
 var world_w = 800;//800
 var world_h = 800;//800
-var max_speed = 1.9;//1.2
+var max_speed = 1.2;//1.2
 var min_radius = 1;//3
 var max_radius = 3;//50
 var max_sight = 500;//500
